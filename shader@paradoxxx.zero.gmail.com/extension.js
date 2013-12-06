@@ -31,31 +31,28 @@ const Panel = imports.ui.panel;
 const PanelMenu = imports.ui.panelMenu;
 const Tweener = imports.ui.tweener;
 
-let tracker, app_system, focus_connection, workspace_connection, animations, shader;
+let tracker, app_system, focus_connection, animations, shader;
 
 function update () {
     let running = app_system.get_running();
     for(var i = 0; i < running.length; i++) {
         let windows = running[i].get_windows();
-        if(running[i].get_name().indexOf('Emacs') > -1 ||
-           running[i].get_name().indexOf('Terminal') > -1) {
-            for(var j = 0; j < windows.length; j++) {
-                let actor = windows[j].get_compositor_private();
-                if(actor) {
-                    if (!actor.get_effect('shader')) {
-                        let fx = new Clutter.ShaderEffect(
-                            { shader_type: Clutter.ShaderType.FRAGMENT_SHADER }
-                        );
-                        fx.set_shader_source(shader);
-                        Shell.shader_effect_set_double_uniform(fx, 'height', actor.get_height());
-                        Shell.shader_effect_set_double_uniform(fx, 'width', actor.get_width());
-                        actor.add_effect_with_name('shader', fx);
-                        let sizechanged = function () {
-                            Shell.shader_effect_set_double_uniform(fx, 'height', actor.get_height());
-                            Shell.shader_effect_set_double_uniform(fx, 'width', actor.get_width());
-                        };
-                        actor.connect('size-changed', sizechanged);
-                    }
+        for(var j = 0; j < windows.length; j++) {
+            let actor = windows[j].get_compositor_private();
+            if(actor) {
+                if (!actor.get_effect('shader')) {
+                    let fx = new Clutter.ShaderEffect(
+                        { shader_type: Clutter.ShaderType.FRAGMENT_SHADER }
+                    );
+                    fx.set_shader_source(shader);
+                    fx.set_uniform_value('height', actor.get_height());
+                    fx.set_uniform_value('width', actor.get_width());
+                    actor.add_effect_with_name('shader', fx);
+                    let sizechanged = function () {
+                                          fx.set_uniform_value('height', actor.get_height());
+                                          fx.set_uniform_value('width', actor.get_width());
+                                      };
+                    actor.connect('size-changed', sizechanged);
                 }
             }
         }
@@ -82,8 +79,6 @@ function init() {
 
 
 function disable() {
-    tracker.disconnect(focus_connection);
-    global.window_manager.disconnect(workspace_connection);
     let running = app_system.get_running();
     for(var i = 0; i < running.length; i++) {
         let windows = running[i].get_windows();
@@ -91,4 +86,5 @@ function disable() {
             windows[j].get_compositor_private().remove_effect_by_name('shader');
         }
     }
+    tracker.disconnect(focus_connection);
 }
